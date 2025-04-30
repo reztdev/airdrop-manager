@@ -4,15 +4,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "airdrop_manager_secret_key"  # Digunakan untuk flash messages
+app.secret_key = "airdrop_manager_secret_key" 
 
-# Konfigurasi database
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "airdrop_manager.db")
 
 def get_db_connection():
     """Membuat koneksi ke database SQLite"""
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Memungkinkan akses kolom dengan nama
+    conn.row_factory = sqlite3.Row  
     return conn
 
 def init_db():
@@ -20,7 +19,6 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Buat tabel projects jika belum ada
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +32,6 @@ def init_db():
         )
     ''')
     
-    # Cek apakah kolom twitter_url dan discord_url sudah ada, jika belum maka tambahkan
     try:
         cursor.execute("SELECT twitter_url FROM projects LIMIT 1")
     except sqlite3.OperationalError:
@@ -53,7 +50,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Inisialisasi database saat aplikasi dimulai
 init_db()
 
 @app.route('/')
@@ -74,20 +70,17 @@ def add_project():
     discord_url = request.form.get('discord_url', '').strip()
     faucet_url = request.form.get('faucet_url', '').strip()
     
-    # Validasi input
+  
     if not name or not url:
         flash('Nama project dan URL harus diisi!', 'error')
         return redirect(url_for('index'))
     
-    # Validasi dan koreksi URL
     if not (url.startswith('http://') or url.startswith('https://')):
         url = 'https://' + url
     
-    # Validasi dan koreksi Twitter URL
     if twitter_url and not (twitter_url.startswith('http://') or twitter_url.startswith('https://')):
         twitter_url = 'https://' + twitter_url
     
-    # Validasi dan koreksi Discord URL
     if discord_url and not (discord_url.startswith('http://') or discord_url.startswith('https://')):
         discord_url = 'https://' + discord_url
 
@@ -127,20 +120,16 @@ def edit_project(id):
         discord_url = request.form.get('discord_url', '').strip()
         faucet_url = request.form.get('faucet_url', '').strip()
         
-        # Validasi input
         if not name or not url:
             flash('Nama project dan URL harus diisi!', 'error')
             return redirect(url_for('index'))
         
-        # Validasi dan koreksi URL
         if not (url.startswith('http://') or url.startswith('https://')):
             url = 'https://' + url
         
-        # Validasi dan koreksi Twitter URL
         if twitter_url and not (twitter_url.startswith('http://') or twitter_url.startswith('https://')):
             twitter_url = 'https://' + twitter_url
         
-        # Validasi dan koreksi Discord URL
         if discord_url and not (discord_url.startswith('http://') or discord_url.startswith('https://')):
             discord_url = 'https://' + discord_url
 
