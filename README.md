@@ -1,3 +1,8 @@
+# Crypto Airdrop Manager
+
+A Flask-based web application to manage cryptocurrency testnet airdrop links in one place.
+
+
 Project Structure:
 ```
 crypto_airdrop_manager/
@@ -11,12 +16,6 @@ crypto_airdrop_manager/
 │
 └── README.md              # Documentation
 ```
-
-# README.md
-
-# Crypto Airdrop Manager
-
-A Flask-based web application to manage cryptocurrency testnet airdrop links in one place.
 
 ## Features
 
