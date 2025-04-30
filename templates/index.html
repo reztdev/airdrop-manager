@@ -1,1 +1,590 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airdrop Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .card {
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+            position: relative;
+            padding-bottom: 50px; /* Memberi ruang untuk tombol */
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .social-icons a {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+        .btn-twitter {
+            color: #1DA1F2;
+        }
+        .btn-discord {
+            color: #7289DA;
+        }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .edit-form-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card-actions {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .input-group .form-control:focus {
+            box-shadow: none;
+            border-color: #ced4da;
+        }
+        .input-group .btn {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        .input-group button#clearSearch {
+            border: none;
+            z-index: 5;
+            cursor: pointer;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px;
+            border-radius: 3px;
+        }
+        .no-results {
+            display: none;
+            padding: 30px;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div id="listView">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold">Airdrop Manager</h1>
+                    <p class="lead">Manage and follow crypto airdrop projects easily</p>
+                </div>
+                <div class="col-md-4 d-flex align-items-center justify-content-end">
+                    <!-- Search Bar and Buttons in one line with same height -->
+                    <div class="input-group">
+                        <div class="position-relative flex-grow-1">
+                            <div class="input-group-text position-absolute h-100" style="z-index: 5; border: none; background: transparent;">
+                                <i class="fas fa-search text-muted"></i>
+                            </div>
+                            <input type="text" class="form-control ps-5" id="searchInput" placeholder="Search projects...">
+                            <button class="btn position-absolute end-0 h-100" id="clearSearch" style="display: none; background: transparent;">
+                                <i class="fas fa-times text-muted"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                            <i class="fas fa-plus"></i> Add Project
+                        </button>
+                        <button class="btn btn-info" id="sepoliaEthBtn">
+                            <i class="fas fa-eth"></i> Sepolia ETH
+                        </button>
+                        <button class="btn btn-primary" id="openAllUrlsBtn">
+                            <i class="fas fa-external-link-alt"></i> Open All
+                        </button>
+                    </div>
+                </div>
+            </div>
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="toast-container">
+                    {% for category, message in messages %}
+                        <div class="toast show bg-light" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="toast-header {% if category == 'success' %}bg-success text-white{% elif category == 'error' %}bg-danger text-white{% endif %}">
+                                <strong class="me-auto">
+                                    {% if category == 'success' %}
+                                        <i class="fas fa-check-circle"></i> Success
+                                    {% elif category == 'error' %}
+                                        <i class="fas fa-exclamation-circle"></i> Error
+                                    {% endif %}
+                                </strong>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="toast-body">
+                                {{ message }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- No results message -->
+            <div class="row no-results" id="noResults">
+                <div class="col">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-search fa-2x mb-3"></i>
+                        <h4>No Projects Found</h4>
+                        <p>Try adjusting your search criteria</p>
+                        <button class="btn btn-outline-secondary" id="resetSearchBtn">
+                            <i class="fas fa-undo"></i> Reset Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" id="projectsContainer">
+                {% if projects|length > 0 %}
+                    {% for project in projects %}
+                        <div class="col-md-4 project-card">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title project-name">{{ project.name }}</h5>
+                                    <p class="card-text project-description">{{ project.description }}</p>
+                                    <div class="social-icons mb-3">
+                                        <a href="{{ url_for('open_url', id=project.id) }}" target="_blank" class="btn-link" title="Buka Website">
+                                            <i class="fas fa-globe"></i>
+                                        </a>
+                                        {% if project.twitter_url %}
+                                        <a href="{{ url_for('open_twitter', id=project.id) }}" target="_blank" class="btn-twitter" title="Buka Twitter">
+                                            <i class="fab fa-twitter"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if project.discord_url %}
+                                        <a href="{{ url_for('open_discord', id=project.id) }}" target="_blank" class="btn-discord" title="Buka Discord">
+                                            <i class="fab fa-discord"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if project.faucet_url %}
+                                        <a href="{{ url_for('open_faucet', id=project.id) }}" target="_blank" class="btn-globe" title="Buka Faucet">
+                                            <i class="fas fa-tint"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Tombol Edit, Hapus, dan Faucet dipindahkan ke kanan bawah -->
+                                    <div class="card-actions">
+                                        {% if project.faucet_url %}
+                                        <a href="{{ url_for('open_faucet', id=project.id) }}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Buka Faucet">
+                                            <i class="fas fa-tint"></i> Faucet
+                                        </a>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                                onclick="showEditForm({{ project.id }}, '{{ project.name }}', '{{ project.url }}', '{{ project.description }}', '{{ project.twitter_url }}', '{{ project.discord_url }}', '{{ project.faucet_url }}')">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmDelete({{ project.id }}, '{{ project.name }}')">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center py-5">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <h4>There Are No Projects Yet</h4>
+                            <p>Get started by adding your first airdrop project.</p>
+                            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                                <i class="fas fa-plus"></i> Add Project
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="editView" style="display: none;">
+            <div class="row mb-4">
+                <div class="col">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="#" onclick="showListView(); return false;">Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Edit Project</li>
+                        </ol>
+                    </nav>
+                    <h1 class="display-6 fw-bold">Edit Project</h1>
+                </div>
+            </div>
+
+            <div class="edit-form-container">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <form id="editForm" method="post">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nama Project <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="url" class="form-label">URL Website <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editUrl" name="url" placeholder="https://" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Deskripsi</label>
+                                <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="twitter_url" class="form-label">URL Twitter</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fab fa-twitter"></i></span>
+                                    <input type="text" class="form-control" id="editTwitterUrl" name="twitter_url" placeholder="https://twitter.com/...">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="discord_url" class="form-label">URL Discord</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fab fa-discord"></i></span>
+                                    <input type="text" class="form-control" id="editDiscordUrl" name="discord_url" placeholder="https://discord.gg/...">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="faucet_url" class="form-label">URL Faucet</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-tint"></i></span>
+                                    <input type="text" class="form-control" id="editFaucetUrl" name="faucet_url" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="showListView()">
+                                    <i class="fas fa-arrow-left"></i> Kembali
+                                </button>
+                                <div>
+                                    <button type="button" class="btn btn-danger me-2" id="editDeleteBtn">
+                                        <i class="fas fa-trash"></i> Hapus
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Simpan Perubahan
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5 class="mb-3">Preview</h5>
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title" id="previewName"></h5>
+                            <p class="card-text" id="previewDescription"></p>
+                            <div class="social-icons mb-3">
+                                <a href="#" target="_blank" class="btn-link me-2" title="Buka Website">
+                                    <i class="fas fa-globe"></i> <span id="previewUrl"></span>
+                                </a>
+                                <br>
+                                <div id="previewTwitterContainer" style="display: none;">
+                                    <a href="#" target="_blank" class="text-primary me-2" title="Buka Twitter">
+                                        <i class="fab fa-twitter"></i> <span id="previewTwitter"></span>
+                                    </a>
+                                    <br>
+                                </div>
+                                <div id="previewDiscordContainer" style="display: none;">
+                                    <a href="#" target="_blank" class="text-primary" title="Buka Discord">
+                                        <i class="fab fa-discord"></i> <span id="previewDiscord"></span>
+                                    </a>
+                                </div>
+                                <div id="previewFaucetContainer" style="display: none;">
+                                    <a href="#" target="_blank" class="text-primary" title="Buka Faucet">
+                                        <i class="fas fa-tint"></i> <span id="previewFaucet"></span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProjectModalLabel">Tambah Project Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('add_project') }}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nama Project <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="url" class="form-label">URL Website <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="url" name="url" placeholder="https://" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="twitter_url" class="form-label">URL Twitter</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fab fa-twitter"></i></span>
+                                <input type="text" class="form-control" id="twitter_url" name="twitter_url" placeholder="https://twitter.com/...">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="discord_url" class="form-label">URL Discord</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fab fa-discord"></i></span>
+                                <input type="text" class="form-control" id="discord_url" name="discord_url" placeholder="https://discord.gg/...">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="faucet_url" class="form-label">URL Faucet</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tint"></i></span>
+                                <input type="text" class="form-control" id="faucet_url" name="faucet_url" placeholder="https://...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Hapus</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Anda yakin ingin menghapus project <strong id="projectNameToDelete"></strong>?</p>
+                    <p class="text-danger"><small>Tindakan ini tidak dapat dibatalkan.</small></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <form id="deleteForm" method="post">
+                        <button type="submit" class="btn btn-danger">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Variabel untuk menyimpan ID project yang sedang diedit
+        let currentEditId = null;
+
+        document.getElementById('sepoliaEthBtn').addEventListener('click', function() {
+        window.open('https://www.alchemy.com/faucets/ethereum-sepolia', '_blank');
+        });
+        
+        // Fungsi untuk menampilkan tampilan daftar (halaman utama)
+        function showListView() {
+            document.getElementById('listView').style.display = 'block';
+            document.getElementById('editView').style.display = 'none';
+            // Reset form edit
+            document.getElementById('editForm').reset();
+            currentEditId = null;
+        }
+        
+        // Fungsi untuk menampilkan form edit
+        function showEditForm(id, name, url, description, twitterUrl, discordUrl, faucetUrl) {
+            // Simpan ID project yang sedang diedit
+            currentEditId = id;
+            
+            // Set action form
+            document.getElementById('editForm').action = "/edit/" + id;
+            
+            // Isi nilai-nilai form
+            document.getElementById('editName').value = name;
+            document.getElementById('editUrl').value = url;
+            document.getElementById('editDescription').value = description;
+            document.getElementById('editTwitterUrl').value = twitterUrl;
+            document.getElementById('editDiscordUrl').value = discordUrl;
+            document.getElementById('editFaucetUrl').value = faucetUrl;
+            
+            // Update preview
+            updatePreview();
+            
+            // Set tombol delete
+            document.getElementById('editDeleteBtn').onclick = function() {
+                confirmDelete(id, name);
+            };
+            
+            // Tampilkan tampilan edit
+            document.getElementById('listView').style.display = 'none';
+            document.getElementById('editView').style.display = 'block';
+        }
+        
+        // Update preview saat nilai input berubah
+        document.getElementById('editName').addEventListener('input', updatePreview);
+        document.getElementById('editDescription').addEventListener('input', updatePreview);
+        document.getElementById('editUrl').addEventListener('input', updatePreview);
+        document.getElementById('editTwitterUrl').addEventListener('input', updatePreview);
+        document.getElementById('editDiscordUrl').addEventListener('input', updatePreview);
+        document.getElementById('editFaucetUrl').addEventListener('input', updatePreview);
+        
+        // Fungsi untuk memperbarui preview
+        function updatePreview() {
+            const name = document.getElementById('editName').value;
+            const description = document.getElementById('editDescription').value;
+            const url = document.getElementById('editUrl').value;
+            const twitterUrl = document.getElementById('editTwitterUrl').value;
+            const discordUrl = document.getElementById('editDiscordUrl').value;
+            const faucetUrl = document.getElementById('editFaucetUrl').value;
+            
+            document.getElementById('previewName').textContent = name;
+            document.getElementById('previewDescription').textContent = description;
+            document.getElementById('previewUrl').textContent = url;
+            
+            // Twitter preview
+            if (twitterUrl) {
+                document.getElementById('previewTwitterContainer').style.display = 'block';
+                document.getElementById('previewTwitter').textContent = twitterUrl;
+            } else {
+                document.getElementById('previewTwitterContainer').style.display = 'none';
+            }
+            
+            // Discord preview
+            if (discordUrl) {
+                document.getElementById('previewDiscordContainer').style.display = 'block';
+                document.getElementById('previewDiscord').textContent = discordUrl;
+            } else {
+                document.getElementById('previewDiscordContainer').style.display = 'none';
+            }
+
+            // Faucet preview
+            if (faucetUrl) {
+                document.getElementById('previewFaucetContainer').style.display = 'block';
+                document.getElementById('previewFaucet').textContent = faucetUrl;
+            } else {
+                document.getElementById('previewFaucetContainer').style.display = 'none';
+            }
+        }
+        
+        // Fungsi untuk konfirmasi hapus
+        function confirmDelete(projectId, projectName) {
+            document.getElementById('projectNameToDelete').textContent = projectName;
+            document.getElementById('deleteForm').action = "/delete/" + projectId;
+            
+            // Tampilkan modal konfirmasi
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            deleteModal.show();
+        }
+
+        // Fungsi untuk membuka semua URL
+        document.getElementById('openAllUrlsBtn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/get_all_urls');
+                const data = await response.json();
+                
+                if (data.length === 0) {
+                    alert('Tidak ada URL yang tersedia.');
+                    return;
+                }
+                
+                const confirmOpen = confirm(`Anda akan membuka ${data.length} tab baru. Lanjutkan?`);
+                if (confirmOpen) {
+                    data.forEach(project => {
+                        window.open(project.url, '_blank');
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengambil URL.');
+            }
+        });
+
+        // Auto-hide toast setelah 5 detik
+        setTimeout(function() {
+            const toasts = document.querySelectorAll('.toast.show');
+            toasts.forEach(toast => {
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.hide();
+            });
+        }, 5000);
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const resetSearchBtn = document.getElementById('resetSearchBtn');
+        const noResults = document.getElementById('noResults');
+        const projectsContainer = document.getElementById('projectsContainer');
+
+        // Function to perform search filtering
+        function performSearch() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            const projectCards = document.querySelectorAll('.project-card');
+            let resultsFound = false;
+
+            // Show/hide clear button
+            clearSearch.style.display = searchTerm.length > 0 ? 'block' : 'none';
+
+            projectCards.forEach(card => {
+                const projectName = card.querySelector('.project-name').textContent.toLowerCase();
+                const projectDescription = card.querySelector('.project-description').textContent.toLowerCase();
+                
+                // Check if the card matches the search criteria
+                if (projectName.includes(searchTerm) || projectDescription.includes(searchTerm)) {
+                    card.style.display = '';
+                    resultsFound = true;
+                    
+                    // Highlight matching text (optional)
+                    if (searchTerm.length > 0) {
+                        highlightText(card.querySelector('.project-name'), projectName, searchTerm);
+                        highlightText(card.querySelector('.project-description'), projectDescription, searchTerm);
+                    } else {
+                        // Remove any existing highlights
+                        card.querySelector('.project-name').innerHTML = card.querySelector('.project-name').textContent;
+                        card.querySelector('.project-description').innerHTML = card.querySelector('.project-description').textContent;
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Show/hide no results message
+            noResults.style.display = !resultsFound && searchTerm.length > 0 ? 'flex' : 'none';
+        }
+
+        // Function to highlight matching text
+        function highlightText(element, originalText, searchTerm) {
+            if (!element) return;
+            
+            // Create a regular expression to find the search term (case insensitive)
+            const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            
+            // Replace with highlighted version
+            element.innerHTML = originalText.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // Search input event
+        searchInput.addEventListener('input', performSearch);
+
+        // Clear search button
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            performSearch();
+            searchInput.focus();
+        });
+
+        // Reset search button
+        resetSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            performSearch();
+        });
+    </script>
+</body>
+</html>
