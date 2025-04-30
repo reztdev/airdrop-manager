@@ -11,7 +11,7 @@
             transition: transform 0.3s;
             margin-bottom: 20px;
             position: relative;
-            padding-bottom: 50px; /* Memberi ruang untuk tombol */
+            padding-bottom: 50px;
         }
         .card:hover {
             transform: translateY(-5px);
@@ -79,7 +79,6 @@
                     <p class="lead">Manage and follow crypto airdrop projects easily</p>
                 </div>
                 <div class="col-md-4 d-flex align-items-center justify-content-end">
-                    <!-- Search Bar and Buttons in one line with same height -->
                     <div class="input-group">
                         <div class="position-relative flex-grow-1">
                             <div class="input-group-text position-absolute h-100" style="z-index: 5; border: none; background: transparent;">
@@ -127,7 +126,6 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- No results message -->
             <div class="row no-results" id="noResults">
                 <div class="col">
                     <div class="alert alert-warning">
@@ -170,7 +168,6 @@
                                         {% endif %}
                                     </div>
                                     
-                                    <!-- Tombol Edit, Hapus, dan Faucet dipindahkan ke kanan bawah -->
                                     <div class="card-actions">
                                         {% if project.faucet_url %}
                                         <a href="{{ url_for('open_faucet', id=project.id) }}" target="_blank" class="btn btn-sm btn-outline-info me-1" title="Buka Faucet">
@@ -383,31 +380,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Variabel untuk menyimpan ID project yang sedang diedit
         let currentEditId = null;
 
         document.getElementById('sepoliaEthBtn').addEventListener('click', function() {
         window.open('https://www.alchemy.com/faucets/ethereum-sepolia', '_blank');
         });
         
-        // Fungsi untuk menampilkan tampilan daftar (halaman utama)
         function showListView() {
             document.getElementById('listView').style.display = 'block';
             document.getElementById('editView').style.display = 'none';
-            // Reset form edit
             document.getElementById('editForm').reset();
             currentEditId = null;
         }
         
-        // Fungsi untuk menampilkan form edit
         function showEditForm(id, name, url, description, twitterUrl, discordUrl, faucetUrl) {
-            // Simpan ID project yang sedang diedit
             currentEditId = id;
             
-            // Set action form
             document.getElementById('editForm').action = "/edit/" + id;
             
-            // Isi nilai-nilai form
             document.getElementById('editName').value = name;
             document.getElementById('editUrl').value = url;
             document.getElementById('editDescription').value = description;
@@ -415,20 +405,16 @@
             document.getElementById('editDiscordUrl').value = discordUrl;
             document.getElementById('editFaucetUrl').value = faucetUrl;
             
-            // Update preview
             updatePreview();
             
-            // Set tombol delete
             document.getElementById('editDeleteBtn').onclick = function() {
                 confirmDelete(id, name);
             };
             
-            // Tampilkan tampilan edit
             document.getElementById('listView').style.display = 'none';
             document.getElementById('editView').style.display = 'block';
         }
         
-        // Update preview saat nilai input berubah
         document.getElementById('editName').addEventListener('input', updatePreview);
         document.getElementById('editDescription').addEventListener('input', updatePreview);
         document.getElementById('editUrl').addEventListener('input', updatePreview);
@@ -436,7 +422,6 @@
         document.getElementById('editDiscordUrl').addEventListener('input', updatePreview);
         document.getElementById('editFaucetUrl').addEventListener('input', updatePreview);
         
-        // Fungsi untuk memperbarui preview
         function updatePreview() {
             const name = document.getElementById('editName').value;
             const description = document.getElementById('editDescription').value;
@@ -449,7 +434,6 @@
             document.getElementById('previewDescription').textContent = description;
             document.getElementById('previewUrl').textContent = url;
             
-            // Twitter preview
             if (twitterUrl) {
                 document.getElementById('previewTwitterContainer').style.display = 'block';
                 document.getElementById('previewTwitter').textContent = twitterUrl;
@@ -457,7 +441,6 @@
                 document.getElementById('previewTwitterContainer').style.display = 'none';
             }
             
-            // Discord preview
             if (discordUrl) {
                 document.getElementById('previewDiscordContainer').style.display = 'block';
                 document.getElementById('previewDiscord').textContent = discordUrl;
@@ -465,7 +448,6 @@
                 document.getElementById('previewDiscordContainer').style.display = 'none';
             }
 
-            // Faucet preview
             if (faucetUrl) {
                 document.getElementById('previewFaucetContainer').style.display = 'block';
                 document.getElementById('previewFaucet').textContent = faucetUrl;
@@ -474,17 +456,14 @@
             }
         }
         
-        // Fungsi untuk konfirmasi hapus
         function confirmDelete(projectId, projectName) {
             document.getElementById('projectNameToDelete').textContent = projectName;
             document.getElementById('deleteForm').action = "/delete/" + projectId;
             
-            // Tampilkan modal konfirmasi
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
             deleteModal.show();
         }
 
-        // Fungsi untuk membuka semua URL
         document.getElementById('openAllUrlsBtn').addEventListener('click', async function() {
             try {
                 const response = await fetch('/get_all_urls');
@@ -507,7 +486,6 @@
             }
         });
 
-        // Auto-hide toast setelah 5 detik
         setTimeout(function() {
             const toasts = document.querySelectorAll('.toast.show');
             toasts.forEach(toast => {
@@ -516,37 +494,31 @@
             });
         }, 5000);
 
-        // Search functionality
         const searchInput = document.getElementById('searchInput');
         const clearSearch = document.getElementById('clearSearch');
         const resetSearchBtn = document.getElementById('resetSearchBtn');
         const noResults = document.getElementById('noResults');
         const projectsContainer = document.getElementById('projectsContainer');
 
-        // Function to perform search filtering
         function performSearch() {
             const searchTerm = searchInput.value.trim().toLowerCase();
             const projectCards = document.querySelectorAll('.project-card');
             let resultsFound = false;
 
-            // Show/hide clear button
             clearSearch.style.display = searchTerm.length > 0 ? 'block' : 'none';
 
             projectCards.forEach(card => {
                 const projectName = card.querySelector('.project-name').textContent.toLowerCase();
                 const projectDescription = card.querySelector('.project-description').textContent.toLowerCase();
                 
-                // Check if the card matches the search criteria
                 if (projectName.includes(searchTerm) || projectDescription.includes(searchTerm)) {
                     card.style.display = '';
                     resultsFound = true;
                     
-                    // Highlight matching text (optional)
                     if (searchTerm.length > 0) {
                         highlightText(card.querySelector('.project-name'), projectName, searchTerm);
                         highlightText(card.querySelector('.project-description'), projectDescription, searchTerm);
                     } else {
-                        // Remove any existing highlights
                         card.querySelector('.project-name').innerHTML = card.querySelector('.project-name').textContent;
                         card.querySelector('.project-description').innerHTML = card.querySelector('.project-description').textContent;
                     }
@@ -555,32 +527,24 @@
                 }
             });
 
-            // Show/hide no results message
             noResults.style.display = !resultsFound && searchTerm.length > 0 ? 'flex' : 'none';
         }
 
-        // Function to highlight matching text
         function highlightText(element, originalText, searchTerm) {
             if (!element) return;
             
-            // Create a regular expression to find the search term (case insensitive)
             const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-            
-            // Replace with highlighted version
             element.innerHTML = originalText.replace(regex, '<span class="highlight">$1</span>');
         }
 
-        // Search input event
         searchInput.addEventListener('input', performSearch);
 
-        // Clear search button
         clearSearch.addEventListener('click', function() {
             searchInput.value = '';
             performSearch();
             searchInput.focus();
         });
 
-        // Reset search button
         resetSearchBtn.addEventListener('click', function() {
             searchInput.value = '';
             performSearch();
